@@ -1,0 +1,9 @@
+/node_modules
+/public/**/*
+/vendor/*
+/logs/*
+/sql/*
+!/sql/migrations
+!/sql/seeds
+/npm-debug.log
+composer.phar
