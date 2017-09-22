@@ -12,6 +12,13 @@ $app = new \Slim\App;
 
 $container = $app->getContainer();
 
+$container['logger'] = function ($c) {
+    $logger = new \Monolog\Logger('my_logger');
+    $file_handler = new \Monolog\Handler\StreamHandler("../logs/app.log");
+    $logger->pushHandler($file_handler);
+    return $logger;
+};
+
 $container['db'] = function ($c) {
     return new Connection([
         'driver' => '\Cake\Database\Driver\Sqlite',
@@ -23,25 +30,25 @@ $container['view'] = function ($c) {
     return new \Slim\Views\PhpRenderer('../src/views');
 };
 
-$app->get('/', function (Request $request, Response $response) {
-    return $this->view->render($response, 'index.tpl');
+$app->get('/view/{calendar_id:[0-9A-Za-z_]+}', function (Request $request, Response $response) {
+    return $this->view->render($response, 'view.tpl');
 });
 
 $app->get('/{calendar_id:[0-9A-Za-z_]+}.ical', function (Request $request, Response $response) {
     $calendarId = $request->getAttribute('calendar_id');
 
     $calendar = $this->db->newQuery()
-    ->select('id, calendar_id, title, description')
-    ->from('calendar')
-    ->where(['calendar_id' => $calendarId])
-    ->execute()
-    ->fetch('assoc');
+        ->select('id, calendar_id, title, description')
+        ->from('calendar')
+        ->where(['calendar_id' => $calendarId])
+        ->execute()
+        ->fetch('assoc');
 
     $sth = $this->db->newQuery()
-    ->select('title, description, startAt, endAt')
-    ->from('event')
-    ->where('calendar_id', $calendar['id'])
-    ->execute();
+        ->select('title, description, startAt, endAt')
+        ->from('event')
+        ->where('calendar_id', $calendar['id'])
+        ->execute();
 
     $tz = "Asia/Tokyo";
     $vCalendar = new Calendar("default");
@@ -87,10 +94,10 @@ $app->get('/holiday', function (Request $request, Response $response) {
     foreach ($holidays as $item) {
         $event = new Event();
         $event->setDtStart($item['date'])
-              ->setDtEnd($item['date'])
-              ->setSummary($item['name'])
-              ->setNoTime(true)
-              ->setUseTimezone(true);
+            ->setDtEnd($item['date'])
+            ->setSummary($item['name'])
+            ->setNoTime(true)
+            ->setUseTimezone(true);
 
         $vCalendar->addComponent($event);
     }
@@ -103,14 +110,26 @@ $app->get('/holiday', function (Request $request, Response $response) {
         ->withBody($body);
 });
 
-$app->get('/api/calendar', function (Request $request, Response $response) {
-    $calendarId = 1;
+$app->get('/api/calendar/{calendar_id:[0-9A-Za-z]+}', function (Request $request, Response $response) {
+    $calendarId = $request->getAttribute('calendar_id');
 
     $sth = $this->db->newQuery()
-    ->select('title, description, startAt, endAt')
-    ->from('event')
-    ->where('calendar_id', $calendarId)
-    ->execute();
+        ->select('id, calendar_id')
+        ->from('calendar')
+        ->where(['calendar_id' => $calendarId])
+        ->execute();
+
+    if ($sth->rowCount() === 0) {
+        return $response->withStatus(404);
+    }
+
+    $id = $sth->fetch('assoc')['id'];
+
+    $sth = $this->db->newQuery()
+        ->select('title, description, startAt, endAt')
+        ->from('event')
+        ->where(['calendar_id' => $id])
+        ->execute();
 
     $calendar = [];
     while ($event = $sth->fetch('assoc')) {
@@ -123,6 +142,37 @@ $app->get('/api/calendar', function (Request $request, Response $response) {
     }
 
     return $response->withJson($calendar);
+});
+
+$app->post('/api/calendar/{calendar_id:[0-9A-Za-z]+}', function (Request $request, Response $response) {
+    $calendarId = $request->getAttribute('calendar_id');
+
+    $sth = $this->db->newQuery()
+        ->select('id, calendar_id')
+        ->from('calendar')
+        ->where(['calendar_id' => $calendarId])
+        ->execute();
+
+    if ($sth->rowCount() === 0) {
+        return $response->withStatus(404);
+    }
+
+    $id = $sth->fetch('assoc')['id'];
+
+    $date = $request->getParsedBodyParam("date");
+    $title = $request->getParsedBodyParam("title");
+
+    $sth = $this->db->insert(
+        'event',
+        [
+            'calendar_id' => $id,
+            'startAt' => $date . " 00:00:00",
+            'endAt' => $date . " 00:00:00",
+            'title' => $title,
+        ]
+    );
+
+    return $response->withJson([]);
 });
 
 $app->run();

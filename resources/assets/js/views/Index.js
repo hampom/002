@@ -8,7 +8,12 @@ import Event from "../models/Event"
 
 export default class Index {
   constructor(vnode) {
-    Event.load();
+    this.calendar_id = Stream("");
+  }
+
+  oninit(vnode) {
+    this.calendar_id(vnode.attrs.calendar_id);
+    Event.load(this.calendar_id());
   }
 
   view(vnode) {

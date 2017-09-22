@@ -4,5 +4,5 @@ import Index from "./views/Index"
 
 m.route.prefix("");
 m.route(document.body, "/", {
-  "/": Index,
+  "/view/:calendar_id": Index,
 });
