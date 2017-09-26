@@ -1,12 +1,11 @@
 import m from "mithril";
 import Stream from "mithril/stream";
 
-import NotFound from "../views/NotFound";
-
-const API_URL = 'http://localhost:8081/api/calendar'
+const API_URL = 'http://localhost:8081/api/calendar';
 
 class eventModel {
     constructor(data) {
+        this.id = Stream(data.id);
         this.title = Stream(data.title);
         this.description = Stream(data.description);
         this.startAt = Stream(data.startAt);
@@ -27,7 +26,7 @@ class Event {
             method: "GET",
             url: API_URL + "/" + calendar_id,
             extract: function (xhr) {
-                if (xhr.status == 404) {
+                if (xhr.status === 404) {
                     // TODO: ステータスが404だった場合は、404ビューに切りかえたい。
                 }
 
@@ -37,29 +36,33 @@ class Event {
             },
             type: (data) => {
                 let tmp = {};
+                let list = {};
                 for (var day in data) {
                     for (var i = 0, len = data[day].length; i < len; i++) {
                         if (tmp[day] === undefined) {
                             tmp[day] = [];
                         }
+                        list[data[day][i]['id']] = { "name": data[day][i]['title'], "visible": true };
                         tmp[day].push(new eventModel(data[day][i]));
                     }
                 }
 
-                return tmp;
+                return { event: tmp, title: list };
             }
         })
         .then(this.events);
     }
 
-    add(date, title) {
+    add(date, title, interval_setting, interval_num) {
         let calendar_id = this.getCalenderId();
         return m.request({
             method: "POST",
             url: API_URL + "/" + calendar_id,
             data: {
                 title: title(),
-                date: date()
+                date: date(),
+                interval_setting: interval_setting(),
+                interval_num: interval_num(),
             }
         })
         .then((result) => this.load(calendar_id));

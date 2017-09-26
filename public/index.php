@@ -1,9 +1,9 @@
 <?php
+
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 use \HolidayJp\HolidayJp;
 use \Eluceo\iCal\Component\Calendar;
-use \Eluceo\iCal\Component\Event;
 use \Cake\Database\Connection;
 
 require '../vendor/autoload.php';
@@ -37,18 +37,14 @@ $app->get('/view/{calendar_id:[0-9A-Za-z_]+}', function (Request $request, Respo
 $app->get('/{calendar_id:[0-9A-Za-z_]+}.ical', function (Request $request, Response $response) {
     $calendarId = $request->getAttribute('calendar_id');
 
-    $calendar = $this->db->newQuery()
-        ->select('id, calendar_id, title, description')
-        ->from('calendar')
-        ->where(['calendar_id' => $calendarId])
-        ->execute()
-        ->fetch('assoc');
+    $Calendar = new \App\Models\Calendar($this->db);
+    $sth = $Calendar->getById($calendarId);
 
-    $sth = $this->db->newQuery()
-        ->select('title, description, startAt, endAt')
-        ->from('event')
-        ->where('calendar_id', $calendar['id'])
-        ->execute();
+    if ($sth->rowCount() == 0) {
+        return $response->withStatus(404);
+    }
+
+    $calendar = $sth->fetch('assoc');
 
     $tz = "Asia/Tokyo";
     $vCalendar = new Calendar("default");
@@ -57,26 +53,77 @@ $app->get('/{calendar_id:[0-9A-Za-z_]+}.ical', function (Request $request, Respo
     $vCalendar->setDescription($calendar['description']);
     $vCalendar->setTimezone($vTimezone);
 
-    while ($item = $sth->fetch('assoc')) {
-        $event = new Event();
-        $event->setDtStart(new \DateTime($item['startAt']))
-              ->setDtEnd(new \DateTime($item['endAt']))
-              ->setSummary($item['title'])
-              ->setUseTimezone(true);
-
-        if ($item['startAt'] === $item['endAt']) {
-            $event->setNoTime(true);
-        }
-
-        $vCalendar->addComponent($event);
-    }
+    $Events = new \App\Models\Events($this->db);
+    $sth = $Events->getAllByCalendarId($calendar['id']);
+    $vCalendar = $Events->convertVcalendar($sth, $vCalendar);
 
     $body = $response->getBody();
     $body->write($vCalendar->render());
 
     return $response
-        //->withHeader('Content-Type', 'text/calendar; charset=utf-8')
+        ->withHeader('Content-Type', 'text/calendar; charset=utf-8')
         ->withBody($body);
+});
+
+$app->get('/api/calendar/{calendar_id:[0-9A-Za-z]+}', function (Request $request, Response $response) {
+    $calendarId = $request->getAttribute('calendar_id');
+
+    $Calendar = new \App\Models\Calendar($this->db);
+    $sth = $Calendar->getById($calendarId);
+
+    if ($sth->rowCount() == 0) {
+        return $response->withStatus(404);
+    }
+
+    $id = $sth->fetch('assoc')['id'];
+    $Events = new \App\Models\Events($this->db);
+    $sth = $Events->getAllByCalendarId($id);
+    $tmp = $Events->convertArray($sth);
+
+    $calendar = [];
+    foreach ($tmp as $v) {
+        if (! isset($calendar[$v['date']])) {
+            $calendar[$v['date']] = [];
+        }
+
+        $calendar[$v['date']][] = $v;
+    }
+
+    return $response->withJson($calendar);
+});
+
+$app->post('/api/calendar/{calendar_id:[0-9A-Za-z]+}', function (Request $request, Response $response) {
+    $calendarId = $request->getAttribute('calendar_id');
+
+    $Calendar = new \App\Models\Calendar($this->db);
+    $sth = $Calendar->getById($calendarId);
+
+    if ($sth->rowCount() === 0) {
+        return $response->withStatus(404);
+    }
+
+    $id = $sth->fetch('assoc')['id'];
+
+    $date = $request->getParsedBodyParam("date");
+    $title = $request->getParsedBodyParam("title");
+    $intervalSetting = $request->getParsedBodyParam("interval_setting");
+    $intervalNum = $request->getParsedBodyParam("interval_num");
+    $this->logger->addInfo(var_export($request->getParsedBody(), true));
+
+    $data = [
+        'calendar_id' => $id,
+        'startAt' => $date . " 00:00:00",
+        'endAt' => $date . " 00:00:00",
+        'title' => $title,
+    ];
+
+    if (!empty($intervalSetting) && !empty($intervalNum)) {
+        $data['interval'] = sprintf("P%d%s", $intervalNum, $intervalSetting);
+    }
+
+    $this->db->insert('event', $data);
+
+    return $response->withJson([]);
 });
 
 $app->get('/holiday', function (Request $request, Response $response) {
@@ -108,71 +155,6 @@ $app->get('/holiday', function (Request $request, Response $response) {
     return $response
         ->withHeader('Content-Type', 'text/calendar; charset=utf-8')
         ->withBody($body);
-});
-
-$app->get('/api/calendar/{calendar_id:[0-9A-Za-z]+}', function (Request $request, Response $response) {
-    $calendarId = $request->getAttribute('calendar_id');
-
-    $sth = $this->db->newQuery()
-        ->select('id, calendar_id')
-        ->from('calendar')
-        ->where(['calendar_id' => $calendarId])
-        ->execute();
-
-    if ($sth->rowCount() === 0) {
-        return $response->withStatus(404);
-    }
-
-    $id = $sth->fetch('assoc')['id'];
-
-    $sth = $this->db->newQuery()
-        ->select('title, description, startAt, endAt')
-        ->from('event')
-        ->where(['calendar_id' => $id])
-        ->execute();
-
-    $calendar = [];
-    while ($event = $sth->fetch('assoc')) {
-        $date = (new \DateTime($event['startAt']))->format("Y-m-d");
-        if (!isset($calendar[$date])) {
-            $calendar[$date] = [];
-        }
-
-        $calendar[$date][] = $event;
-    }
-
-    return $response->withJson($calendar);
-});
-
-$app->post('/api/calendar/{calendar_id:[0-9A-Za-z]+}', function (Request $request, Response $response) {
-    $calendarId = $request->getAttribute('calendar_id');
-
-    $sth = $this->db->newQuery()
-        ->select('id, calendar_id')
-        ->from('calendar')
-        ->where(['calendar_id' => $calendarId])
-        ->execute();
-
-    if ($sth->rowCount() === 0) {
-        return $response->withStatus(404);
-    }
-
-    $id = $sth->fetch('assoc')['id'];
-
-    $date = $request->getParsedBodyParam("date");
-    $title = $request->getParsedBodyParam("title");
-
-    $sth = $this->db->insert(
-        'event',
-        [
-            'calendar_id' => $id,
-            'startAt' => $date . " 00:00:00",
-            'endAt' => $date . " 00:00:00",
-            'title' => $title,
-        ]
-    );
-
-    return $response->withJson([]);
 });
 
 $app->run();

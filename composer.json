@@ -7,5 +7,10 @@
         "slim/php-view": "^2.2",
         "cakephp/database": "^3.5",
         "k1low/holiday_jp": "^1.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
     }
 }
