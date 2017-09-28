@@ -136,10 +136,7 @@ export default class PvCalendar {
                                 })
                             ]);
                     })
-                ]),
-
-            // リスト
-            m(PvList)
+                ])
         ]
     }
 }

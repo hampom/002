@@ -2,6 +2,7 @@ import m from "mithril";
 import Stream from "mithril/stream";
 
 import PvCalendar from "./PvCalendar";
+import PvList from "./PvList";
 import Form from "./Form";
 
 import Event from "../models/Event"
@@ -19,7 +20,7 @@ export default class Index {
   view(vnode) {
     return m(".container.mar-t-md", [
       m(".row", [
-        m(".col-4", m(Form)),
+        m(".col-4", [m(Form), m(PvList)]),
         m(".col-8", m(PvCalendar))
       ])
     ]);
