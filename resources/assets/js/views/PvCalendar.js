@@ -4,56 +4,24 @@ import moment from "moment";
 
 import Event from "../models/Event"
 
-import PvList from "./PvList"
+import PvEvent from "../models/PvEvent"
+import Calendar from "../models/Calendar"
 
 export default class PvCalendar {
     constructor(vnode) {
-        this.today = Stream(moment());
-        this.month = Stream.combine((today) => {
-                return today().startOf("month");
-            },
-            [this.today]
-        );
-        this.calendarStartDate = Stream.combine((month) => {
-                let t = moment(month().format("Y-MM-DD"));
-                return moment(t.startOf("month").startOf("week").format("Y-MM-DD"));
-            },
-            [this.month]
-        );
-        this.calendarEndDate = Stream.combine((month) => {
-                let t = moment(month().format("Y-MM-DD"));
-                return moment(t.endOf("month").endOf("week").format("Y-MM-DD"));
-            },
-            [this.month]
-        );
-        this.day = Stream.combine((startDate, endDate) => {
-            let day = [],
-                t = startDate(),
-                i = 0;
-            do {
-                if (t.day() === 0) {
-                    day[++i] = [];
-                }
-
-                day[i].push(moment(t.format("Y-MM-DD")));
-                t.add(1, "days");
-            } while (t.isSameOrBefore(endDate()));
-
-            return day;
-        }, [this.calendarStartDate, this.calendarEndDate]);
     }
 
     prevMonth() {
-        this.today(this.month().subtract(1, "months"));
+        Calendar.today(Calendar.month().subtract(1, "months"));
     }
 
     nextMonth() {
-        this.today(this.month().add(1, "months"));
+        Calendar.today(Calendar.month().add(1, "months"));
     }
 
     view(vnode) {
         return [
-            m("h2", vnode.state.today().format("Y/MM")),
+            m("h2", Calendar.today().format("Y/MM")),
             m(".row", [
                 m(".col.text-left", m("span", { onclick: () => { vnode.state.prevMonth(); }}, "前月")),
                 m(".col.text-right", m("span", { onclick: () => { vnode.state.nextMonth(); }}, "翌月")),
@@ -85,7 +53,7 @@ export default class PvCalendar {
                                 );
                             })
                         ]),
-                    vnode.state.day().map((week) => {
+                    Calendar.day().map((week) => {
                         return m(".week", {
                                 style: {
                                     "display": "table-row",
@@ -94,7 +62,7 @@ export default class PvCalendar {
                             },
                             [
                                 week.map((day) => {
-                                    let bd = day.month() !== vnode.state.today().month() ? "#f5f5f5" : "#ffffff";
+                                    let bd = day.month() !== Calendar.today().month() ? "#f5f5f5" : "#ffffff";
                                     return m("div.day", {
                                             style: {
                                                 "background-color": bd,
@@ -111,7 +79,7 @@ export default class PvCalendar {
                                                         "text-align": "right",
                                                         "font-weight": "bold",
                                                         "margin-bottom": "5px",
-                                                        "color": day.month() !== vnode.state.today().month() ? "#c5c5c5": "#000000"
+                                                        "color": day.month() !== Calendar.today().month() ? "#c5c5c5": "#000000"
                                                     }
                                                 },
                                                 day.format("DD")
@@ -122,7 +90,9 @@ export default class PvCalendar {
                                                         return Event.events().title[event.id].visible;
                                                     })
                                                     .map((event) => {
-                                                        return m("p.bg-primary.mar-b-xs", {
+                                                        return m("p.mar-b-xs",
+                                                            {
+                                                                class: "bg-primary",
                                                                 style: {
                                                                     "color": "#ffffff",
                                                                     "overflow": "hidden"
@@ -131,6 +101,17 @@ export default class PvCalendar {
                                                             event.title
                                                         );
                                                     })
+                                                : "",
+                                            (PvEvent.calendar() && PvEvent.calendar()[day.format("Y-MM-DD")])
+                                                ? m("p.bg-info.mar-b-xs",
+                                                    {
+                                                        style: {
+                                                            "color": "#ffffff",
+                                                            "overflow": "hidden"
+                                                        }
+                                                    },
+                                                    PvEvent.calendar()[day.format("Y-MM-DD")].title
+                                                )
                                                 : ""
                                         ])
                                 })

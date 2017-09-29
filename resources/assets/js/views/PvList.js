@@ -19,7 +19,6 @@ export default class PvList {
                             ),
                             m("label", { "for": "event-" + id }, Event.events().title[id].name)
                         ),
-                        m("a.text-sm", "編集")
                     ]);
                 })
                 : ""
