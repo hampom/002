@@ -6,6 +6,12 @@ import Calendar from "../models/Calendar"
 
 class PvEvent {
     constructor() {
+        this.momentKeys = {
+            "Y": "years",
+            "M": "months",
+            "W": "weeks",
+            "D": "days",
+        };
         this.title = Stream("");
         this.description = Stream("");
         this.startAt = Stream("");
@@ -30,7 +36,7 @@ class PvEvent {
             if (setting() !== "N" && num() !== "") {
                 while (event.date.isSameOrBefore(endDate())) {
                     result[event.date.format("Y-MM-DD")] = event;
-                    event.date.add(parseInt(num()), setting().toLowerCase());
+                    event.date.add(parseInt(num()), this.momentKeys[setting()]);
                 }
             }
 

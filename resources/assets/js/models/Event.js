@@ -1,7 +1,9 @@
 import m from "mithril";
 import Stream from "mithril/stream";
 
-const API_URL = 'http://localhost:8081/api/calendar';
+const HOST = 'http://localhost:8081';
+const API_URL = HOST + '/api/calendar';
+const WEB_URL = HOST + '/view';
 
 class eventModel {
     constructor(data) {
@@ -17,6 +19,9 @@ class Event {
     constructor() {
         this.calendar_id = Stream("");
         this.events = Stream({});
+        this.icalUrl = Stream.combine((calendar_id) => {
+            return WEB_URL + "/" + calendar_id() + ".ical";
+        },[ this.calendar_id ]);
     }
 
     load(calendar_id) {

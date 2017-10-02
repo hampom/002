@@ -1,5 +1,4 @@
 import m from "mithril";
-import Stream from "mithril/stream";
 import moment from "moment";
 
 import Event from "../models/Event"
@@ -8,44 +7,44 @@ import PvEvent from "../models/PvEvent"
 import Calendar from "../models/Calendar"
 
 export default class PvCalendar {
-    constructor(vnode) {
-    }
-
-    prevMonth() {
+    static prevMonth() {
         Calendar.today(Calendar.month().subtract(1, "months"));
     }
 
-    nextMonth() {
+    static nextMonth() {
         Calendar.today(Calendar.month().add(1, "months"));
     }
 
     view(vnode) {
         return [
-            m("h2", Calendar.today().format("Y/MM")),
-            m(".row", [
-                m(".col.text-left", m("span", { onclick: () => { vnode.state.prevMonth(); }}, "前月")),
-                m(".col.text-right", m("span", { onclick: () => { vnode.state.nextMonth(); }}, "翌月")),
+            m(".row.mar-b-sm", [
+                m(".col.text-left", m("button.button-light.button-sm", { onclick: () => { PvCalendar.prevMonth(); }}, "前月")),
+                m(".col.text-center", Calendar.today().format("Y年MM月")),
+                m(".col.text-right", m("button.button-light.button-sm", { onclick: () => { PvCalendar.nextMonth(); }}, "翌月")),
             ]),
-            m(".calendar", {
+            m(".calendar.mar-b-sm", {
                     style: {
                         "display": "table",
                         "width": "100%",
+                        "height": "100%",
                     }
                 },
                 [
                     m(".header", {
                             style: {
-                                "display": "table-row"
+                                "display": "table-row",
+                                "height": "20px"
                             }
                         },
                         [
-                            ["日", "月", "火", "水", "木", "金", "土"].map(function(week) {
+                            moment.weekdays().map(function(week) {
                                 return m("div",
                                     {
                                         style: {
+                                            "background": "#000",
+                                            "color": "#fff",
                                             "display": "table-cell",
                                             "text-align": "center",
-                                            "font-weight": "bold",
                                             "padding": "10px 0",
                                         }
                                     },
@@ -57,7 +56,6 @@ export default class PvCalendar {
                         return m(".week", {
                                 style: {
                                     "display": "table-row",
-                                    "height": "100%"
                                 }
                             },
                             [
@@ -115,9 +113,12 @@ export default class PvCalendar {
                                                 : ""
                                         ])
                                 })
-                            ]);
+                            ]
+                        );
                     })
-                ])
+                ]
+            ),
+            m("input[type=text].mar-b-sm", { "readonly": "readonly", "value": Event.icalUrl })
         ]
     }
 }
