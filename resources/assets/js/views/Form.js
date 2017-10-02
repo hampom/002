@@ -1,16 +1,12 @@
 import m from "mithril";
 import Stream from "mithril/stream";
+import { Button, TextField, TextFieldLabel, TextFieldInput } from 'mithrilmdl';
 
 import Event from "../models/Event";
 import PvEvent from "../models/PvEvent";
 
-export default class Form {
+export default class FormView {
     constructor(vnode) {
-        this.date = Stream("");
-        this.title = Stream("");
-        this.interval_setting = Stream("N");
-        this.interval_num = Stream("");
-
         this.intervals = {
             "N": "なし",
             "Y": "年",
@@ -20,67 +16,75 @@ export default class Form {
         };
     }
 
-    add() {
+    add(e) {
+        e.preventDefault();
         Event
-           .add(this.date, this.title, this.interval_setting, this.interval_num)
+           .add(PvEvent.startAt, PvEvent.title, PvEvent.interval_setting, PvEvent.interval_num)
            .then(() => {
-               this.date("");
-               this.title("");
-               this.interval_setting("N");
-               this.interval_num("");
-           })
+               PvEvent.startAt("");
+               PvEvent.title("");
+               PvEvent.interval_setting("N");
+               PvEvent.interval_num("");
+               document.querySelector("[for=interval-N]").MaterialRadio.check();
+           });
     }
 
     view(vnode) {
-        return m("form",
-            {
-                onsubmit: (e) => {
-                    e.preventDefault();
-                    vnode.state.add();
+        return (
+            <form
+                onSubmit={e => vnode.state.add(e)}
+            >
+                <TextField floatingLabel>
+                    <TextFieldLabel value="日付" />
+                    <TextFieldInput
+                        pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}"
+                        value={PvEvent.startAt}
+                        oninput={m.withAttr("value", PvEvent.startAt)}
+                    />
+                </TextField>
+
+                <TextField floatingLabel>
+                    <TextFieldLabel value="用件" />
+                    <TextFieldInput
+                        value={PvEvent.title}
+                        oninput={m.withAttr("value", PvEvent.title)}
+                    />
+                </TextField>
+
+                <fieldset>
+                    <legend style={ "margin-bottom: 10px;" }>繰り返し設定</legend>
+                    {Object.keys(vnode.state.intervals).map((key) => {
+                        return (
+                            <div style={"margin-bottom: 6px;"}>
+                                <label class="mdl-radio mdl-js-radio" for={"interval-" + key}>
+                                    <input
+                                        type="radio"
+                                        id={"interval-" + key}
+                                        class="mdl-radio__button"
+                                        value={key}
+                                        name="interval_setting"
+                                        onchange={m.withAttr("value", PvEvent.interval_setting)}
+                                        checked={PvEvent.interval_setting() === key}
+                                    />
+                                    <span class="mdl-radio__label">{this.intervals[key]}</span>
+                                </label>
+                            </div>
+                        );
+                    })}
+                </fieldset>
+
+                {(PvEvent.interval_setting() !== "N")
+                    ? <TextField floatingLabel>
+                        <TextFieldLabel value="周期"/>
+                        <TextFieldInput
+                            value={PvEvent.interval_num}
+                            oninput={m.withAttr("value", PvEvent.interval_num)}
+                        />
+                    </TextField>
+                    : ""
                 }
-            },
-            [
-                m(".input-field", [
-                    m("label", "日付"),
-                    m("input[type=text]", {
-                        oninput: m.withAttr("value", PvEvent.startAt),
-                        value: PvEvent.startAt
-                    })
-                ]),
-                m(".input-field", [
-                    m("label", "件名"),
-                    m("input[type=text]", {
-                        oninput: m.withAttr("value", PvEvent.title),
-                        value: PvEvent.title
-                    })
-                ]),
-                m("fieldset", [
-                    m("legend", "繰り返し設定"),
-                    m(".input-field", [
-                        Object.keys(vnode.state.intervals).map((key) => {
-                            return m("label", [
-                                m("input[type=radio]", {
-                                    value: key,
-                                    onchange: m.withAttr("value", PvEvent.interval_setting),
-                                    checked: PvEvent.interval_setting() == key
-                                }),
-                                this.intervals[key]
-                            ]);
-                        })
-                    ]),
-                    m(".input-field", [
-                        m("label", "繰り返し周期"),
-                        m(".input-group", [
-                            m("input[type=text]", {
-                                oninput: m.withAttr("value", PvEvent.interval_num),
-                                value: PvEvent.interval_num,
-                                disabled: PvEvent.interval_setting() === "N"
-                            }),
-                            m("span.input-addon", "/" + vnode.state.intervals[PvEvent.interval_setting()])
-                        ])
-                    ]),
-                ]),
-                m("button", "登録")
-            ])
+                <Button raised colored title="登録" onclick={e => vnode.state.add(e)} />
+            </form>
+        );
     }
 }

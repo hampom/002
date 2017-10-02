@@ -1,4 +1,5 @@
 import m from "mithril";
+import { Layout, LayoutContent, Grid, Cell } from 'mithrilmdl';
 import Stream from "mithril/stream";
 
 import PvCalendar from "./PvCalendar";
@@ -18,11 +19,15 @@ export default class Index {
   }
 
   view(vnode) {
-    return m(".container.mar-t-md", [
-      m(".row", [
-        m(".col-4", [m(Form), m(PvList)]),
-        m(".col-8", m(PvCalendar))
-      ])
-    ]);
+      return (
+          <Layout>
+              <LayoutContent>
+              <Grid style={ "margin: 0" }>
+                  <Cell col="3"><Form /><PvList /></Cell>
+                  <Cell col="9"><PvCalendar /></Cell>
+              </Grid>
+              </LayoutContent>
+          </Layout>
+      );
   }
 }
