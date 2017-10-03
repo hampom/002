@@ -23,7 +23,7 @@ export default class PvCalendar {
         return [
             <div>
                 <Grid>
-                    <Cell>
+                    <Cell bottom>
                         <div style={ "text-align: left;" }>
                             <Button
                                 onclick={(e) => PvCalendar.prevMonth()}
@@ -33,10 +33,10 @@ export default class PvCalendar {
                     </Cell>
                     <Cell>
                         <div style={ "text-align: center;" }>
-                            {Calendar.today().format("Y年MM月")}
+                            <h4>{Calendar.today().format("Y年MM月")}</h4>
                         </div>
                     </Cell>
-                    <Cell>
+                    <Cell bottom>
                         <div style={ "text-align: right;" }>
                             <Button
                                 onclick={(e) => PvCalendar.nextMonth()}
@@ -57,7 +57,7 @@ export default class PvCalendar {
                     </div>
                     {Calendar.day().map((week) => {
                         return [
-                            <div style={ "display: table-row" }>
+                            <div style={ "display: table-row;" }>
                                 {week.map((day) => {
                                     let bd = day.month() !== Calendar.today().month() ? "#f5f5f5" : "#ffffff";
                                     return [
@@ -87,6 +87,7 @@ export default class PvCalendar {
                         ]
                     })}
                 </div>
+                <p style={ "text-align: right;" }><a href={Event.icalUrl()}>{Event.icalUrl()}</a></p>
             </div>
         ];
     }
