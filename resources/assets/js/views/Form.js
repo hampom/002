@@ -1,5 +1,4 @@
 import m from "mithril";
-import Stream from "mithril/stream";
 import { Button, TextField, TextFieldLabel, TextFieldInput } from 'mithrilmdl';
 
 import Event from "../models/Event";

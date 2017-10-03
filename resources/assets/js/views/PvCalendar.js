@@ -8,6 +8,9 @@ import PvEvent from "../models/PvEvent"
 import Calendar from "../models/Calendar"
 
 export default class PvCalendar {
+    constructor() {
+        moment.locale("ja");
+    }
     static prevMonth() {
         Calendar.today(Calendar.month().subtract(1, "months"));
     }
@@ -58,21 +61,21 @@ export default class PvCalendar {
                                 {week.map((day) => {
                                     let bd = day.month() !== Calendar.today().month() ? "#f5f5f5" : "#ffffff";
                                     return [
-                                        <div style={ "display: table-cell; width: 14.285%; border: 1px solid #c5c5c5; padding: 5px; background-color:" + bd }>
+                                        <div style={ "display: table-cell; width: 14.285%; border: 1px solid rgba(0,0,0,.12); padding: 5px; background-color:" + bd }>
                                             <p style={ "text-align: right; font-weight: bold;" }>{day.format("DD")}</p>
                                             {(Event.events().event && Event.events().event[day.format("Y-MM-DD")])
                                                 ? Event.events().event[day.format("Y-MM-DD")]
                                                     .filter((event) => { return Event.events().title[event.id].visible; })
                                                     .map((event) => {
                                                         return [
-                                                            <p style={ "margin: 0; overflow: hidden;" }>{event.title}</p>
+                                                            <p style={ "color: rgba(0,0,0,.87); background-color: #FCE4EC; margin: 0 0 3px 0; padding: 2px; overflow: hidden;" }>{event.title}</p>
                                                         ]
                                                     })
                                                 : ""
                                             }
                                             {(PvEvent.calendar() && PvEvent.calendar()[day.format("Y-MM-DD")])
                                                 ?
-                                                <p style={ "margin: 0; overflow: hidden;" }>
+                                                <p style={ "color: rgba(255,255,255,.87); background-color: #1A237E; margin: 0 0 3px 0; padding: 2px; overflow: hidden;" }>
                                                     {PvEvent.calendar()[day.format("Y-MM-DD")].title}
                                                 </p>
                                                 : ""
