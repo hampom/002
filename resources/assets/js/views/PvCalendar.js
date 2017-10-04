@@ -2,10 +2,11 @@ import m from "mithril";
 import moment from "moment";
 import { Grid, Cell, Button } from 'mithrilmdl';
 
-import Event from "../models/Event"
+import Event from "../models/Event";
+import User from "../models/User";
 
-import PvEvent from "../models/PvEvent"
-import Calendar from "../models/Calendar"
+import PvEvent from "../models/PvEvent";
+import Calendar from "../models/Calendar";
 
 export default class PvCalendar {
     constructor() {
@@ -22,6 +23,17 @@ export default class PvCalendar {
     view(vnode) {
         return [
             <div>
+                {User.hasToken()
+                    ? ""
+                    : <div style={ "text-align: right;" }>
+                        <Button
+                            raised
+                            colored
+                            title="LOGIN"
+                            onclick={(e) => { location.href = "/twitter/auth"; }}
+                        />
+                    </div>
+                }
                 <Grid>
                     <Cell bottom>
                         <div style={ "text-align: left;" }>

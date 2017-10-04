@@ -7,6 +7,7 @@ import PvList from "./PvList";
 import Form from "./Form";
 
 import Event from "../models/Event"
+import User from "../models/User"
 
 export default class Index {
   constructor(vnode) {
@@ -23,7 +24,10 @@ export default class Index {
           <Layout>
               <LayoutContent>
               <Grid style={ "margin: 0" }>
-                  <Cell col="3"><Form /><PvList /></Cell>
+                  <Cell col="3">
+                      {User.hasToken() ? <Form /> : ""}
+                      <PvList />
+                  </Cell>
                   <Cell col="9"><PvCalendar /></Cell>
               </Grid>
               </LayoutContent>

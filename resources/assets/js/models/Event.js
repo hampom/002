@@ -1,6 +1,8 @@
 import m from "mithril";
 import Stream from "mithril/stream";
 
+import User from "./User";
+
 const HOST = 'http://localhost:8081';
 const API_URL = HOST + '/api/calendar';
 const WEB_URL = HOST + '/view';
@@ -20,7 +22,7 @@ class Event {
         this.calendar_id = Stream("");
         this.events = Stream({});
         this.icalUrl = Stream.combine((calendar_id) => {
-            return WEB_URL + "/" + calendar_id() + ".ical";
+            return HOST + "/" + calendar_id() + ".ical";
         },[ this.calendar_id ]);
     }
 
@@ -29,7 +31,7 @@ class Event {
 
         return m.request({
             method: "GET",
-            url: API_URL + "/" + calendar_id,
+            url: HOST + "/" + calendar_id + ".json",
             extract: function (xhr) {
                 if (xhr.status === 404) {
                     // TODO: ステータスが404だった場合は、404ビューに切りかえたい。
@@ -55,7 +57,8 @@ class Event {
                 return { event: tmp, title: list };
             }
         })
-        .then(this.events);
+        .then(this.events)
+        .then(User.refreshToken());
     }
 
     add(date, title, interval_setting, interval_num) {
@@ -68,6 +71,9 @@ class Event {
                 date: date(),
                 interval_setting: interval_setting(),
                 interval_num: interval_num(),
+            },
+            headers: {
+                "Authorization": "Bearer " + User.getToken()
             }
         })
         .then((result) => this.load(calendar_id));

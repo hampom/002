@@ -6,7 +6,11 @@
         "eluceo/ical": "^0.12.1",
         "slim/php-view": "^2.2",
         "cakephp/database": "^3.5",
-        "k1low/holiday_jp": "^1.2"
+        "k1low/holiday_jp": "^1.2",
+        "abraham/twitteroauth": "^0.7.4",
+        "bryanjhv/slim-session": "~3.0",
+        "tuupola/slim-jwt-auth": "^2.3",
+        "tuupola/base62": "^0.8.0"
     },
     "autoload": {
         "psr-4": {

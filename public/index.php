@@ -5,8 +5,13 @@ use \Psr\Http\Message\ResponseInterface as Response;
 use \HolidayJp\HolidayJp;
 use \Eluceo\iCal\Component\Calendar;
 use \Cake\Database\Connection;
+use Abraham\TwitterOAuth\TwitterOAuth;
 
 require '../vendor/autoload.php';
+
+const CONSUMER_KEY = '';
+const CONSUMER_SECRET = '';
+const CALL_BACK = 'http://localhost:8081/twitter/auth';
 
 $app = new \Slim\App;
 
@@ -26,9 +31,130 @@ $container['db'] = function ($c) {
     ]);
 };
 
+$container['session'] = function ($c) {
+    return new \SlimSession\Helper;
+};
+
 $container['view'] = function ($c) {
     return new \Slim\Views\PhpRenderer('../src/views');
 };
+
+$container["jwt"] = function ($container) {
+    return new StdClass;
+};
+
+$app->add(new \Slim\Middleware\JwtAuthentication([
+    "path" => "/api",
+    "passthrough" => ["/twitter/auth"],
+    "secret" => "supersecretkeyyoushouldnotcommittogithub",
+    "callback" => function ($request, $response, $arguments) use ($container) {
+        $container["jwt"] = $arguments["decoded"];
+    }
+]));
+
+$app->get('/twitter/auth', function (Request $request, Response $response) {
+    if($this->session->exists('oauth_token') &&
+       $this->session->get('oauth_token') === $request->getQueryParam('oauth_token') &&
+       $request->getQueryParam('oauth_verifier')) {
+
+        $twitter = new TwitterOAuth(
+            CONSUMER_KEY,
+            CONSUMER_SECRET,
+            $this->session->get('oauth_token'),
+            $this->session->get('oauth_token_secret')
+        );
+
+        $accessToken = $twitter->oauth(
+            "oauth/access_token",
+            [
+                'oauth_verifier' => $request->getQueryParam('oauth_verifier'),
+            ]
+        );
+
+        $userTwitter = new TwitterOAuth(
+            CONSUMER_KEY,
+            CONSUMER_SECRET,
+            $accessToken['oauth_token'],
+            $accessToken['oauth_token_secret']
+        );
+        $userInfo = $userTwitter->get("account/verify_credentials");
+
+        $now = new \DateTime();
+        $future = new \DateTime("now +2 hours");
+        $server = $request->getServerParams();
+        $jti = (new \Tuupola\Base62)->encode(random_bytes(16));
+
+        /** @var Cake\Database\Statement\PDOStatement $sth */
+        $sth = $this->db->newQuery()
+            ->select('id')
+            ->from('users')
+            ->where(['twitter_id' => $userInfo->id])
+            ->execute();
+
+        if ($sth->rowCount() == 0) {
+            /** @var Cake\Database\Statement\PDOStatement $sth */
+            $sth = $this->db->insert('users', [
+                'user_name' => $userInfo->screen_name,
+                'twitter_id' => $userInfo->id
+            ]);
+            $id = $sth->lastInsertId();
+        } else {
+            $id = $sth->fetch('assoc')['id'];
+        }
+
+        $payload = [
+            "iat" => $now->getTimeStamp(),
+            "exp" => $future->getTimeStamp(),
+            "jti" => $jti,
+            "user_id" => $id,
+        ];
+
+        $secret = "supersecretkeyyoushouldnotcommittogithub";
+        //$secret = getenv("JWT_SECRET");
+        $token = \Firebase\JWT\JWT::encode($payload, $secret, "HS256");
+        $data["token"] = $token;
+        $data["expires"] = $future->getTimeStamp();
+
+        return $this->view->render($response, 'loggedin.tpl', $data);
+    }
+
+    $twitter = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET);
+    $tokens = $twitter->oauth("oauth/request_token", ["oauth_callback" => CALL_BACK]);
+
+    $this->session->set('oauth_token', $tokens['oauth_token']);
+    $this->session->set('oauth_token_secret', $tokens['oauth_token_secret']);
+
+    $url = $twitter->url("oauth/authorize", ['oauth_token' => $tokens['oauth_token']]);
+    return $response->withRedirect((string)$url, 302);
+
+})->add(new \Slim\Middleware\Session([
+    'name' => '002_tw_session',
+    'autorefresh' => true,
+    'lifetime' => '1 hour',
+]));
+
+$app->post('/api/token_refresh', function (Request $request, Response $response) {
+    $now = new \DateTime();
+    $future = new \DateTime("now +2 hours");
+    $jti = (new \Tuupola\Base62)->encode(random_bytes(16));
+
+    $payload = [
+        "iat" => $now->getTimeStamp(),
+        "exp" => $future->getTimeStamp(),
+        "jti" => $jti,
+        "user_id" => $this->jwt->user_id,
+    ];
+
+    $secret = "supersecretkeyyoushouldnotcommittogithub";
+    //$secret = getenv("JWT_SECRET");
+    $token = \Firebase\JWT\JWT::encode($payload, $secret, "HS256");
+    $data["token"] = $token;
+    $data["expires"] = $future->getTimeStamp();
+    return $response->withStatus(201)
+        ->withHeader("Content-Type", "application/json")
+        ->write(json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+});
+
 
 $app->get('/view/{calendar_id:[0-9A-Za-z_]+}', function (Request $request, Response $response) {
     return $this->view->render($response, 'view.tpl');
@@ -65,7 +191,7 @@ $app->get('/{calendar_id:[0-9A-Za-z_]+}.ical', function (Request $request, Respo
         ->withBody($body);
 });
 
-$app->get('/api/calendar/{calendar_id:[0-9A-Za-z]+}', function (Request $request, Response $response) {
+$app->get('/{calendar_id:[0-9A-Za-z]+}.json', function (Request $request, Response $response) {
     $calendarId = $request->getAttribute('calendar_id');
 
     $Calendar = new \App\Models\Calendar($this->db);
