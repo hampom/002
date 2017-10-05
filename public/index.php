@@ -9,8 +9,9 @@ use Abraham\TwitterOAuth\TwitterOAuth;
 
 require '../vendor/autoload.php';
 
-const CONSUMER_KEY = '';
-const CONSUMER_SECRET = '';
+$dotenv = new Dotenv\Dotenv("../");
+$dotenv->load();
+
 const CALL_BACK = 'http://localhost:8081/twitter/auth';
 
 $app = new \Slim\App;
@@ -58,8 +59,8 @@ $app->get('/twitter/auth', function (Request $request, Response $response) {
        $request->getQueryParam('oauth_verifier')) {
 
         $twitter = new TwitterOAuth(
-            CONSUMER_KEY,
-            CONSUMER_SECRET,
+            getenv('CONSUMER_KEY'),
+            getenv('CONSUMER_SECRET'),
             $this->session->get('oauth_token'),
             $this->session->get('oauth_token_secret')
         );
@@ -72,8 +73,8 @@ $app->get('/twitter/auth', function (Request $request, Response $response) {
         );
 
         $userTwitter = new TwitterOAuth(
-            CONSUMER_KEY,
-            CONSUMER_SECRET,
+            getenv('CONSUMER_KEY'),
+            getenv('CONSUMER_SECRET'),
             $accessToken['oauth_token'],
             $accessToken['oauth_token_secret']
         );
@@ -118,7 +119,7 @@ $app->get('/twitter/auth', function (Request $request, Response $response) {
         return $this->view->render($response, 'loggedin.tpl', $data);
     }
 
-    $twitter = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET);
+    $twitter = new TwitterOAuth(getenv('CONSUMER_KEY'), getenv('CONSUMER_SECRET'));
     $tokens = $twitter->oauth("oauth/request_token", ["oauth_callback" => CALL_BACK]);
 
     $this->session->set('oauth_token', $tokens['oauth_token']);
