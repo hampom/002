@@ -4,6 +4,10 @@ import { List, ListItem, ListItemPrimaryContent, ListItemSecondaryAction, Toggle
 import Event from "../models/Event"
 
 export default class PvList {
+    edit(id) {
+        Event.loadItem(id);
+    }
+
     view(vnode) {
         return [
             <List>
@@ -12,7 +16,11 @@ export default class PvList {
                         return [
                             <ListItem>
                                 <ListItemPrimaryContent>
-                                    {Event.events().title[id].name}
+                                    <span
+                                        onclick={(e) => this.edit(id)}
+                                    >
+                                        {Event.events().title[id].name}
+                                    </span>
                                 </ListItemPrimaryContent>
                                 <ListItemSecondaryAction>
                                     <Toggle

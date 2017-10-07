@@ -22,6 +22,31 @@ class Events extends Model
     }
 
     /**
+     * @param string $calendarName
+     * @param int $id
+     * @return StatementInterface
+     */
+    public function getCalendarNameAndId(string $calendarName, int $id): StatementInterface
+    {
+        $calendarId = $this->db->newQuery()
+            ->select('id')
+            ->from('calendar')
+            ->where(['calendar_id' => $calendarName])
+            ->execute()
+            ->fetch('assoc')['id'];
+
+        if (empty($calendarId)) {
+            throw new \InvalidArgumentException();
+        }
+
+        return $this->db->newQuery()
+            ->select('id, title, description, startAt, endAt, interval')
+            ->from('event')
+            ->where(['calendar_id' => $calendarId, 'id' => $id])
+            ->execute();
+    }
+
+    /**
      * @param StatementInterface $sth
      * @return array
      */

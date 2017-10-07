@@ -219,6 +219,21 @@ $app->get('/{calendar_id:[0-9A-Za-z]+}.json', function (Request $request, Respon
     return $response->withJson($calendar);
 });
 
+$app->get('/api/calendar/{calendar_id:[0-9A-Za-z]+}/{event_id:[0-9]+}', function (Request $request, Response $response) {
+    $calendarId = $request->getAttribute('calendar_id');
+    $eventId = $request->getAttribute('event_id');
+
+    $Events = new \App\Models\Events($this->db);
+    $sth = $Events->getCalendarNameAndId($calendarId, $eventId);
+
+    if ($sth->rowCount() == 0) {
+        return $response->withStatus(404);
+    }
+
+    $event = $sth->fetch('assoc');
+    return $response->withJson($event);
+});
+
 $app->post('/api/calendar/{calendar_id:[0-9A-Za-z]+}', function (Request $request, Response $response) {
     $calendarId = $request->getAttribute('calendar_id');
 

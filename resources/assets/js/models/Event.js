@@ -2,6 +2,7 @@ import m from "mithril";
 import Stream from "mithril/stream";
 
 import User from "./User";
+import PvEvent from "../models/PvEvent"
 
 const HOST = 'http://localhost:8081';
 const API_URL = HOST + '/api/calendar';
@@ -14,6 +15,7 @@ class eventModel {
         this.description = Stream(data.description);
         this.startAt = Stream(data.startAt);
         this.endAt = Stream(data.endAt);
+        this.interval = Stream(data.interval);
     }
 }
 
@@ -44,8 +46,8 @@ class Event {
             type: (data) => {
                 let tmp = {};
                 let list = {};
-                for (var day in data) {
-                    for (var i = 0, len = data[day].length; i < len; i++) {
+                for (let day in data) {
+                    for (let i = 0, len = data[day].length; i < len; i++) {
                         if (tmp[day] === undefined) {
                             tmp[day] = [];
                         }
@@ -59,6 +61,31 @@ class Event {
         })
         .then(this.events)
         .then(User.refreshToken());
+    }
+
+    loadItem(event_id) {
+        return m.request({
+            method: "GET",
+            url: API_URL + "/" + this.calendar_id() + "/" + event_id,
+            headers: {
+                "Authorization": "Bearer " + User.getToken()
+            },
+            extract: function (xhr) {
+                if (xhr.status === 404) {
+                    throw new Error;
+                }
+
+                let data = xhr.responseText;
+                try {return data !== "" ? JSON.parse(data) : null}
+                catch (e) {throw new Error(data)}
+            },
+            type: eventModel
+        })
+        .then((result) => PvEvent.edit(result))
+        .catch((e) => {
+            alert("指定にあやまりがあります");
+        });
+
     }
 
     add(date, title, interval_setting, interval_num) {

@@ -29,7 +29,7 @@ export default class PvCalendar {
                         <Button
                             raised
                             colored
-                            title="LOGIN"
+                            title="TWITTER LOGIN"
                             onclick={(e) => { location.href = "/twitter/auth"; }}
                         />
                     </div>

@@ -12,6 +12,7 @@ class PvEvent {
             "W": "weeks",
             "D": "days",
         };
+        this.id = Stream("");
         this.title = Stream("");
         this.description = Stream("");
         this.startAt = Stream("");
@@ -51,7 +52,22 @@ class PvEvent {
         ]);
     }
 
-    generate_calendar() {
+    edit (event) {
+        this.id(event.id());
+        this.title(event.title());
+        this.description(event.description());
+        this.startAt(moment(event.startAt()).format("Y-MM-DD"));
+        this.endAt(event.endAt());
+        this.interval_setting("");
+        this.interval_num("");
+        document.querySelector("[for=interval-N]").MaterialRadio.check();
+
+        if (event.interval() !== null) {
+            const interval = event.interval().match(/^P([0-9]+)([YMWD])/);
+            this.interval_setting(interval[2]);
+            document.querySelector("[for=interval-" + interval[2] + "]").MaterialRadio.check();
+            this.interval_num(interval[1]);
+        }
     }
 }
 
