@@ -67,7 +67,18 @@ class PvEvent {
             this.interval_setting(interval[2]);
             document.querySelector("[for=interval-" + interval[2] + "]").MaterialRadio.check();
             this.interval_num(interval[1]);
+        } else {
+            this.interval_setting("N");
+            document.querySelector("[for=interval-N]").MaterialRadio.check();
         }
+    }
+
+    reset () {
+        this.id("");
+        this.startAt("");
+        this.title("");
+        this.interval_setting("N");
+        this.interval_num("");
     }
 }
 

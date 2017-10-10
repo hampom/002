@@ -103,6 +103,24 @@ class Event {
                 "Authorization": "Bearer " + User.getToken()
             }
         })
+            .then((result) => this.load(calendar_id));
+    }
+
+    update(id, date, title, interval_setting, interval_num) {
+        let calendar_id = this.getCalenderId();
+        return m.request({
+            method: "PUT",
+            url: API_URL + "/" + calendar_id + "/" + id(),
+            data: {
+                title: title(),
+                date: date(),
+                interval_setting: interval_setting(),
+                interval_num: interval_num(),
+            },
+            headers: {
+                "Authorization": "Bearer " + User.getToken()
+            }
+        })
         .then((result) => this.load(calendar_id));
     }
 

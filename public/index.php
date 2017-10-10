@@ -268,6 +268,45 @@ $app->post('/api/calendar/{calendar_id:[0-9A-Za-z]+}', function (Request $reques
     return $response->withJson([]);
 });
 
+$app->put('/api/calendar/{calendar_id:[0-9A-Za-z]+}/{event_id:[0-9]+}', function (Request $request, Response $response) {
+    $calendarId = $request->getAttribute('calendar_id');
+    $eventId = $request->getAttribute('event_id');
+
+    $Calendar = new \App\Models\Calendar($this->db);
+    $sth = $Calendar->getById($calendarId);
+
+    if ($sth->rowCount() === 0) {
+        return $response->withStatus(404);
+    }
+
+    $id = $sth->fetch('assoc')['id'];
+
+    $date = $request->getParsedBodyParam("date");
+    $title = $request->getParsedBodyParam("title");
+    $intervalSetting = $request->getParsedBodyParam("interval_setting");
+    $intervalNum = $request->getParsedBodyParam("interval_num");
+    $this->logger->addInfo(var_export($request->getParsedBody(), true));
+
+    $data = [
+        'startAt' => $date . " 00:00:00",
+        'endAt' => $date . " 00:00:00",
+        'title' => $title,
+    ];
+
+    if (!empty($intervalSetting) && !empty($intervalNum)) {
+        $data['interval'] = sprintf("P%d%s", $intervalNum, $intervalSetting);
+    }
+
+    $where = [
+        'id' => $eventId,
+        'calendar_id' => $id,
+    ];
+
+    $this->db->update('event', $data, $where);
+
+    return $response->withJson([]);
+});
+
 $app->get('/holiday', function (Request $request, Response $response) {
     $tz = "Asia/Tokyo";
     $vCalendar = new Calendar("default");

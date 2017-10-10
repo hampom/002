@@ -15,23 +15,29 @@ export default class FormView {
         };
     }
 
-    add(e) {
+    post(e) {
         e.preventDefault();
-        Event
-           .add(PvEvent.startAt, PvEvent.title, PvEvent.interval_setting, PvEvent.interval_num)
-           .then(() => {
-               PvEvent.startAt("");
-               PvEvent.title("");
-               PvEvent.interval_setting("N");
-               PvEvent.interval_num("");
-               document.querySelector("[for=interval-N]").MaterialRadio.check();
-           });
+        if (PvEvent.id() === "") {
+            Event
+                .add(PvEvent.startAt, PvEvent.title, PvEvent.interval_setting, PvEvent.interval_num)
+                .then(() => {
+                    PvEvent.reset();
+                    document.querySelector("[for=interval-N]").MaterialRadio.check();
+                });
+        } else {
+            Event
+                .update(PvEvent.id, PvEvent.startAt, PvEvent.title, PvEvent.interval_setting, PvEvent.interval_num)
+                .then(() => {
+                    PvEvent.reset();
+                    document.querySelector("[for=interval-N]").MaterialRadio.check();
+                });
+        }
     }
 
     view(vnode) {
         return (
             <form
-                onSubmit={e => vnode.state.add(e)}
+                onSubmit={e => vnode.state.post(e)}
             >
                 <TextField floatingLabel>
                     <TextFieldLabel value="日付" />
@@ -82,7 +88,7 @@ export default class FormView {
                     </TextField>
                     : ""
                 }
-                <Button raised colored title="登録" onclick={e => vnode.state.add(e)} />
+                <Button raised colored title="登録" onclick={e => vnode.state.post(e)} />
             </form>
         );
     }
