@@ -199,7 +199,7 @@ $app->get('/{calendar_id:[0-9A-Za-z]+}.json', function (Request $request, Respon
 
 $app->get('/api/calendar/{calendar_id:[0-9A-Za-z]+}/{event_id:[0-9]+}', function (Request $request, Response $response) {
     $calendarId = $request->getAttribute('calendar_id');
-    $eventId = $request->getAttribute('event_id');
+    $eventId = intval($request->getAttribute('event_id'));
 
     $Events = new \App\Models\Events($this->db);
     $sth = $Events->getCalendarNameAndId($calendarId, $eventId);
@@ -282,6 +282,28 @@ $app->put('/api/calendar/{calendar_id:[0-9A-Za-z]+}/{event_id:[0-9]+}', function
 
     $this->db->update('event', $data, $where);
 
+    return $response->withJson([]);
+});
+
+$app->delete('/api/calendar/{calendar_id:[0-9A-Za-z]+}/{event_id:[0-9]+}', function (Request $request, Response $response) {
+    $calendarId = $request->getAttribute('calendar_id');
+    $eventId = $request->getAttribute('event_id');
+
+    $Calendar = new \App\Models\Calendar($this->db);
+    $sth = $Calendar->getById($calendarId);
+
+    if ($sth->rowCount() === 0) {
+        return $response->withStatus(404);
+    }
+
+    $id = $sth->fetch('assoc')['id'];
+
+    $where= [
+        'id' => $eventId,
+        'calendar_id' => $id,
+    ];
+
+    $this->db->delete('event', $where);
     return $response->withJson([]);
 });
 

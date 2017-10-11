@@ -1,5 +1,5 @@
 import m from "mithril";
-import { Button, TextField, TextFieldLabel, TextFieldInput } from 'mithrilmdl';
+import { Button, TextField, TextFieldLabel, TextFieldInput, Dialog, DialogService } from 'mithrilmdl';
 
 import Event from "../models/Event";
 import PvEvent from "../models/PvEvent";
@@ -13,6 +13,8 @@ export default class FormView {
             "W": "週",
             "D": "日",
         };
+
+        this.mdlDialogService = new DialogService();
     }
 
     post(e) {
@@ -34,11 +36,30 @@ export default class FormView {
         }
     }
 
+    delete(e) {
+        this.mdlDialogService.showConfirm(
+            "イベント「" + PvEvent.title() + "」",
+            "削除しますか？",
+            true,
+            () => this.onDeleteDialogConfirmed()
+        );
+    }
+
+    onDeleteDialogConfirmed() {
+        Event
+            .delete(PvEvent.id)
+            .then(() => {
+                PvEvent.reset();
+                document.querySelector("[for=interval-N]").MaterialRadio.check();
+            });
+    }
+
     view(vnode) {
         return (
             <form
                 onSubmit={e => vnode.state.post(e)}
             >
+                <Dialog/>
                 <TextField floatingLabel>
                     <TextFieldLabel value="日付" />
                     <TextFieldInput
@@ -89,6 +110,12 @@ export default class FormView {
                     : ""
                 }
                 <Button raised colored title="登録" onclick={e => vnode.state.post(e)} />
+                {(PvEvent.id() !== "")
+                    ? <div style={"margin-top: 10px;"}>
+                        <Button raised title="削除" onclick={e => vnode.state.delete(e)} />
+                      </div>
+                    : ""
+                }
             </form>
         );
     }

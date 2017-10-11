@@ -1,8 +1,8 @@
 {
   "private": true,
   "scripts": {
-    "start": "webpack -d --watch",
-    "dev": "webpack -d",
+    "start": "webpack --watch --devtool source-map",
+    "dev": "webpack --devtool source-map",
     "prod": "webpack -p"
   },
   "devDependencies": {

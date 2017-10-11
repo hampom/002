@@ -141,6 +141,23 @@ class Event {
         });
     }
 
+    delete(id) {
+        let calendar_id = this.getCalenderId();
+        return m.request({
+            method: "DELETE",
+            url: API_URL + "/" + calendar_id + "/" + id(),
+            headers: {
+                "Authorization": "Bearer " + User.getToken()
+            }
+        })
+        .then((result) => this.load(calendar_id))
+        .catch((e) => {
+            if (e.code === 401) {
+                User.deletetoken();
+            }
+        });
+    }
+
     getCalenderId() {
         return this.calendar_id();
     }
