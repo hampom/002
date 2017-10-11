@@ -19,19 +19,8 @@ class User {
         return this.getToken() !== null;
     }
 
-    refreshToken() {
-        return m.request({
-            method: "POST",
-            url: TOKEN_API_URI + "_refresh",
-            type: userModel,
-            headers: {
-                "Authorization": "Bearer " + this.getToken()
-            }
-        })
-        .then((result) => localStorage.setItem('token', result.token()))
-        .catch((e) => {
-            throw new Error(e);
-        });
+    deletetoken() {
+        return localStorage.removeItem("token");
     }
 }
 

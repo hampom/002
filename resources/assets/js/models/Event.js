@@ -35,13 +35,14 @@ class Event {
             method: "GET",
             url: HOST + "/" + calendar_id + ".json",
             extract: function (xhr) {
-                if (xhr.status === 404) {
-                    // TODO: ステータスが404だった場合は、404ビューに切りかえたい。
+                if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304) {
+                    return JSON.parse(xhr.responseText);
                 }
-
-                let data = xhr.responseText;
-                try {return data !== "" ? JSON.parse(data) : null}
-                catch (e) {throw new Error(data)}
+                else {
+                    let error = new Error(xhr.responseText);
+                    error.code = xhr.status;
+                    throw error;
+                }
             },
             type: (data) => {
                 let tmp = {};
@@ -60,7 +61,11 @@ class Event {
             }
         })
         .then(this.events)
-        .then(User.refreshToken());
+        .catch((e) => {
+            if (e.code === 401) {
+                User.deletetoken();
+            }
+        });
     }
 
     loadItem(event_id) {
@@ -71,21 +76,23 @@ class Event {
                 "Authorization": "Bearer " + User.getToken()
             },
             extract: function (xhr) {
-                if (xhr.status === 404) {
-                    throw new Error;
+                if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304) {
+                    return JSON.parse(xhr.responseText);
                 }
-
-                let data = xhr.responseText;
-                try {return data !== "" ? JSON.parse(data) : null}
-                catch (e) {throw new Error(data)}
+                else {
+                    let error = new Error(xhr.responseText);
+                    error.code = xhr.status;
+                    throw error;
+                }
             },
             type: eventModel
         })
         .then((result) => PvEvent.edit(result))
         .catch((e) => {
-            alert("指定にあやまりがあります");
+            if (e.code === 401) {
+                User.deletetoken();
+            }
         });
-
     }
 
     add(date, title, interval_setting, interval_num) {
@@ -103,7 +110,12 @@ class Event {
                 "Authorization": "Bearer " + User.getToken()
             }
         })
-            .then((result) => this.load(calendar_id));
+        .then((result) => this.load(calendar_id))
+        .catch((e) => {
+            if (e.code === 401) {
+                User.deletetoken();
+            }
+        });
     }
 
     update(id, date, title, interval_setting, interval_num) {
@@ -121,7 +133,12 @@ class Event {
                 "Authorization": "Bearer " + User.getToken()
             }
         })
-        .then((result) => this.load(calendar_id));
+        .then((result) => this.load(calendar_id))
+        .catch((e) => {
+            if (e.code === 401) {
+                User.deletetoken();
+            }
+        });
     }
 
     getCalenderId() {

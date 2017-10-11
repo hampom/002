@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -81,7 +82,7 @@ $app->get('/twitter/auth', function (Request $request, Response $response) {
         $userInfo = $userTwitter->get("account/verify_credentials");
 
         $now = new \DateTime();
-        $future = new \DateTime("now +2 hours");
+        $future = new \DateTime("now +30 days");
         $server = $request->getServerParams();
         $jti = (new \Tuupola\Base62)->encode(random_bytes(16));
 
@@ -134,29 +135,6 @@ $app->get('/twitter/auth', function (Request $request, Response $response) {
     'lifetime' => '1 hour',
 ]));
 
-$app->post('/api/token_refresh', function (Request $request, Response $response) {
-    $now = new \DateTime();
-    $future = new \DateTime("now +2 hours");
-    $jti = (new \Tuupola\Base62)->encode(random_bytes(16));
-
-    $payload = [
-        "iat" => $now->getTimeStamp(),
-        "exp" => $future->getTimeStamp(),
-        "jti" => $jti,
-        "user_id" => $this->jwt->user_id,
-    ];
-
-    $secret = "supersecretkeyyoushouldnotcommittogithub";
-    //$secret = getenv("JWT_SECRET");
-    $token = \Firebase\JWT\JWT::encode($payload, $secret, "HS256");
-    $data["token"] = $token;
-    $data["expires"] = $future->getTimeStamp();
-    return $response->withStatus(201)
-        ->withHeader("Content-Type", "application/json")
-        ->write(json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-});
-
-
 $app->get('/view/{calendar_id:[0-9A-Za-z_]+}', function (Request $request, Response $response) {
     return $this->view->render($response, 'view.tpl');
 });
@@ -202,7 +180,7 @@ $app->get('/{calendar_id:[0-9A-Za-z]+}.json', function (Request $request, Respon
         return $response->withStatus(404);
     }
 
-    $id = $sth->fetch('assoc')['id'];
+    $id = intval($sth->fetch('assoc')['id']);
     $Events = new \App\Models\Events($this->db);
     $sth = $Events->getAllByCalendarId($id);
     $tmp = $Events->convertArray($sth);
