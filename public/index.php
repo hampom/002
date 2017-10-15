@@ -7,6 +7,7 @@ use \HolidayJp\HolidayJp;
 use \Eluceo\iCal\Component\Calendar;
 use \Cake\Database\Connection;
 use Abraham\TwitterOAuth\TwitterOAuth;
+use \Yosymfony\Toml\Toml;
 
 require '../vendor/autoload.php';
 
@@ -55,10 +56,10 @@ $app->add(new \Slim\Middleware\JwtAuthentication([
 ]));
 
 $app->get('/twitter/auth', function (Request $request, Response $response) {
-    if($this->session->exists('oauth_token') &&
-       $this->session->get('oauth_token') === $request->getQueryParam('oauth_token') &&
-       $request->getQueryParam('oauth_verifier')) {
-
+    if ($this->session->exists('oauth_token')
+        && $this->session->get('oauth_token') === $request->getQueryParam('oauth_token')
+        && $request->getQueryParam('oauth_verifier')
+    ) {
         $twitter = new TwitterOAuth(
             getenv('CONSUMER_KEY'),
             getenv('CONSUMER_SECRET'),
@@ -86,7 +87,6 @@ $app->get('/twitter/auth', function (Request $request, Response $response) {
         $server = $request->getServerParams();
         $jti = (new \Tuupola\Base62)->encode(random_bytes(16));
 
-        /** @var Cake\Database\Statement\PDOStatement $sth */
         $sth = $this->db->newQuery()
             ->select('id')
             ->from('users')
@@ -128,7 +128,6 @@ $app->get('/twitter/auth', function (Request $request, Response $response) {
 
     $url = $twitter->url("oauth/authorize", ['oauth_token' => $tokens['oauth_token']]);
     return $response->withRedirect((string)$url, 302);
-
 })->add(new \Slim\Middleware\Session([
     'name' => '002_tw_session',
     'autorefresh' => true,
@@ -136,7 +135,40 @@ $app->get('/twitter/auth', function (Request $request, Response $response) {
 ]));
 
 $app->get('/view/{calendar_id:[0-9A-Za-z_]+}', function (Request $request, Response $response) {
-    return $this->view->render($response, 'view.tpl');
+    $array = Toml::Parse('test.toml');
+
+    /*
+    $events = [];
+    foreach ($array as $title => $value) {
+        $events = array_merge(
+            $events,
+            (new \App\Models\EventEntity([$title => $value]))
+                ->generateEventRangeArray()
+        );
+    }
+    return $response->withJson($events);
+    */
+
+
+
+    $tz = "Asia/Tokyo";
+    $vCalendar = new Calendar("default");
+    $vTimezone = new \Eluceo\iCal\Component\Timezone($tz);
+    $vCalendar->setName($calendar['title']);
+    $vCalendar->setDescription($calendar['description']);
+    $vCalendar->setTimezone($vTimezone);
+    foreach ($array as $title => $value) {
+        $vCalendar = (new \App\Models\EventEntity([$title => $value]))
+            ->generateEventRangeCalendar($vCalendar);
+    }
+    $body = $response->getBody();
+    $body->write($vCalendar->render());
+
+    return $response
+        //->withHeader('Content-Type', 'text/calendar; charset=utf-8')
+        ->withBody($body);
+
+    //return $this->view->render($response, 'view.tpl');
 });
 
 $app->get('/{calendar_id:[0-9A-Za-z_]+}.ical', function (Request $request, Response $response) {

@@ -77,7 +77,12 @@ export default class PvCalendar {
                                             <p style={ "text-align: right; font-weight: bold;" }>{day.format("DD")}</p>
                                             {(Event.events().event && Event.events().event[day.format("Y-MM-DD")])
                                                 ? Event.events().event[day.format("Y-MM-DD")]
-                                                    .filter((event) => { return Event.events().title[event.id].visible; })
+                                                    .filter((event) => {
+                                                        if (PvEvent.id() === event.id()) {
+                                                            return false;
+                                                        }
+                                                        return Event.events().title[event.id].visible;
+                                                    })
                                                     .map((event) => {
                                                         return [
                                                             <p style={ "color: rgba(0,0,0,.87); background-color: #FCE4EC; margin: 0 0 3px 0; padding: 2px; overflow: hidden;" }>{event.title}</p>
