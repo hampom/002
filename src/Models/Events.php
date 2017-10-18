@@ -2,104 +2,59 @@
 
 namespace App\Models;
 
-use \Cake\Database\StatementInterface;
 use \Eluceo\iCal\Component\Calendar;
 use \Eluceo\iCal\Component\Event;
 
-class Events extends Model
+class Events
 {
-    /**
-     * @param int $id
-     * @return StatementInterface
-     */
-    public function getAllByCalendarId(int $id): StatementInterface
+    public function generateEventRange(EventEntity $eventEntity): array
     {
-        return $this->db->newQuery()
-            ->select('id, title, description, startAt, endAt, interval')
-            ->from('event')
-            ->where(['calendar_id' => $id])
-            ->execute();
-    }
+        $events = [clone $eventEntity];
 
-    /**
-     * @param string $calendarName
-     * @param int $id
-     * @return StatementInterface
-     */
-    public function getCalendarNameAndId(string $calendarName, int $id): StatementInterface
-    {
-        $calendarId = $this->db->newQuery()
-            ->select('id')
-            ->from('calendar')
-            ->where(['calendar_id' => $calendarName])
-            ->execute()
-            ->fetch('assoc')['id'];
+        // インターバルがある場合
+        if (!empty($eventEntity->getIntervalSpec())) {
+            $events = [];
 
-        if (empty($calendarId)) {
-            throw new \InvalidArgumentException();
-        }
+            $loopDate = $eventEntity->getStartAt();
+            $intervalDate = clone $loopDate;
 
-        return $this->db->newQuery()
-            ->select('id, title, description, startAt, endAt, interval')
-            ->from('event')
-            ->where(['calendar_id' => $calendarId, 'id' => $id])
-            ->execute();
-    }
+            if ($eventEntity->getEndAt() instanceof \DateTime) {
+                $intervalDate = $eventEntity->getEndAt();
+            }
 
-    /**
-     * @param StatementInterface $sth
-     * @return array
-     */
-    public function convertArray(StatementInterface $sth): array
-    {
-        $calendar = [];
-        while ($event = $sth->fetch('assoc')) {
-            // 自身のイベント情報を保存する
-            $event['date'] = (new \DateTime($event['startAt']))->format("Y-m-d");
-            $calendar[] = $event;
+            if ($loopDate->format("Y-m-d") === $intervalDate->format("Y-m-d")) {
+                $intervalDate = \DateTime::createFromFormat("Y-m-d", $loopDate->format("Y-m-t"));
+            }
 
-            // インターバルがある場合
-            if (!empty($event['interval'])) {
-                $loopDate = new \DateTime($event['startAt']);
-                $intervalDate = clone $loopDate;
+            while ($loopDate < $intervalDate) {
+                $event = clone $eventEntity;
+                $event->setStart($loopDate->format('Y-m-d H:i:s'));
+                $event->setEnd($loopDate->format('Y-m-d H:i:s'));
+                $events[] = $event;
 
-                $interval = new \DateInterval($event['interval']);
-                $intervalDate->add(new \DateInterval("P1Y"));
-                while ($loopDate < $intervalDate) {
-                    $loopDate->add($interval);
-
-                    $event['date'] = $loopDate->format("Y-m-d");
-                    $event['startAt'] = $loopDate->format('Y-m-d H:i:s');
-                    $event['endAt'] = $loopDate->format('Y-m-d H:i:s');
-                    $calendar[] = $event;
-                }
+                $loopDate->add($eventEntity->getInterval());
             }
         }
 
-        return $calendar;
+        return $events;
     }
 
-    /**
-     * @param StatementInterface $sth
-     * @param Calendar $vCalendar
-     * @return Calendar
-     */
-    public function convertVcalendar(StatementInterface $sth, Calendar $vCalendar): Calendar
+    public function generateEventRangeArray(EventEntity $eventEntity): array
     {
-        $tmpArray = $this->convertArray($sth);
+        $events = $this->generateEventRange($eventEntity);
+        $result = [];
+        foreach ($events as $event) {
+            $result[] = $event->toArray();
+        }
 
-        foreach ($tmpArray as $item) {
-            $event = new Event();
-            $event->setDtStart(new \DateTime($item['startAt']))
-                ->setDtEnd(new \DateTime($item['endAt']))
-                ->setSummary($item['title'])
-                ->setUseTimezone(true);
+        return $result;
+    }
 
-            if ($item['startAt'] === $item['endAt']) {
-                $event->setNoTime(true);
-            }
-
-            $vCalendar->addComponent($event);
+    public function generateEventRangeCalendar(Calendar $vCalendar, EventEntity $eventEntity): Calendar
+    {
+        $events = $this->generateEventRange($eventEntity);
+        foreach ($events as $event) {
+            $vCalendar->addComponent($event->toEventObj());
         }
 
         return $vCalendar;

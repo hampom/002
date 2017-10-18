@@ -7,18 +7,65 @@ use \Eluceo\iCal\Component\Calendar;
 
 class EventEntity
 {
+    /**
+     * 予定タイトル
+     *
+     * @var String
+     */
     protected $title = "";
+
+    /**
+     * 予定開始日
+     *
+     * @var \DateTime
+     */
     protected $startAt = "";
+
+    /**
+     * 予定終了日
+     *
+     * @var \DateTime
+     */
     protected $endAt = "";
+
+    /**
+     * 繰り返し予定のインターバル
+     *
+     * @var \DateInterval
+     */
     protected $interval = "";
+
+    /**
+     * 週間予定の場合のパターン
+     * 月曜日から日曜日
+     * 　例） oxoxoxx
+     *
+     * @var String
+     */
     protected $pattern = "";
+
+    /**
+     * パターン外に特定の日時を指定する
+     *
+     * @var Array
+     */
     protected $inclusion = [];
+
+    /**
+     * パターン中の特定の日時を除外する
+     *
+     * @var Array
+     */
     protected $exclusion = [];
 
     public function __construct(array $data = [])
     {
         $this->setTitle(key($data));
         foreach (reset($data) as $k => $v) {
+            if (empty($v)) {
+                continue;
+            }
+
             $method = 'set' . ucfirst(strtolower($k));
             if (method_exists($this, $method)) {
                 $this->{$method}($v);
@@ -83,23 +130,22 @@ class EventEntity
 
     public function getDate(): string
     {
-        return $this->startAt instanceof \DateTime
-            ? $this->startAt->format("Y-m-d")
-            : "";
+        return $this->startAt->format("Y-m-d");
     }
 
-    public function getStartAt(): string
+    public function getStartAt(): \DateTime
     {
-        return $this->startAt instanceof \DateTime
-            ? $this->startAt->format("Y-m-d H:i:s")
-            : "";
+        return $this->startAt;
     }
 
-    public function getEndAt(): string
+    public function getEndAt(): \DateTime
     {
-        return $this->endAt instanceof \DateTime
-            ? $this->endAt->format("Y-m-d H:i:s")
-            : "";
+        return $this->endAt;
+    }
+
+    public function getInterval(): \DateInterval
+    {
+        return $this->interval;
     }
 
     public function getIntervalSpec(): string
@@ -118,7 +164,7 @@ class EventEntity
         if ($this->interval->d) {
             $date .= $this->interval->d . 'D';
         }
-    
+
         $time = null;
         if ($this->interval->h) {
             $time .= $this->interval->h . 'H';
@@ -132,7 +178,7 @@ class EventEntity
         if ($time) {
             $time = 'T' . $time;
         }
-    
+
         $text ='P' . $date . $time;
         return $text === 'P'
             ? 'PT0S'
@@ -166,7 +212,7 @@ class EventEntity
             $event->setDtEnd($this->endAt);
         }
 
-        if ($this->getStartAt() === $this->getEndAt()) {
+        if ($this->startAt->format("Y-m-d") === $this->endAt->format("Y-m-d")) {
             $event->setNoTime(true);
         }
 
@@ -178,59 +224,8 @@ class EventEntity
         return [
             'title' => $this->getTitle(),
             'date' => $this->getDate(),
-            'startAt' => $this->getStartAt(),
-            'endAt' => $this->getEndAt(),
+            'startAt' => $this->getStartAt()->format("Y-m-d H:i:s"),
+            'endAt' => $this->getEndAt()->format("Y-m-d H:i:s"),
         ];
-    }
-
-    public function generateEventRange(): array
-    {
-        $events = [clone $this];
-
-        // インターバルがある場合
-        if (!empty($this->interval)) {
-            $loopDate = clone $this->startAt;
-            $intervalDate = clone $loopDate;
-
-            if ($this->endAt instanceof \DateTime) {
-                $intervalDate = clone $this->endAt;
-            }
-
-            if ($loopDate->format("Y-m-d") === $intervalDate->format("Y-m-d")) {
-                $intervalDate = \DateTime::createFromFormat("Y-m-d", $loopDate->format("Y-m-t"));
-            }
-
-            while ($loopDate < $intervalDate) {
-                $loopDate->add($this->interval);
-
-                $event = clone $this;
-                $event->setStart($loopDate->format('Y-m-d H:i:s'));
-                $event->setEnd($loopDate->format('Y-m-d H:i:s'));
-                $events[] = $event;
-            }
-        }
-
-        return $events;
-    }
-
-    public function generateEventRangeArray(): array
-    {
-        $events = $this->generateEventRange();
-        $result = [];
-        foreach ($events as $event) {
-            $result[] = $event->toArray();
-        }
-
-        return $result;
-    }
-
-    public function generateEventRangeCalendar(Calendar $vCalendar): Calendar
-    {
-        $events = $this->generateEventRange();
-        foreach ($events as $event) {
-            $vCalendar->addComponent($event->toEventObj());
-        }
-
-        return $vCalendar;
     }
 }

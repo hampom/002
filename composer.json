@@ -12,8 +12,12 @@
         "tuupola/slim-jwt-auth": "^2.3",
         "tuupola/base62": "^0.8.0",
         "vlucas/phpdotenv": "^2.4",
-        "squizlabs/php_codesniffer": "*",
         "yosymfony/toml": "^0.3.3"
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "@dev",
+        "jetbrains/phpstorm-stubs": "dev-master@dev",
+        "felixfbecker/language-server": "v4.6.1"
     },
     "autoload": {
         "psr-4": {
