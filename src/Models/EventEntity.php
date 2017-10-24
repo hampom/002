@@ -212,7 +212,7 @@ class EventEntity
             $event->setDtEnd($this->endAt);
         }
 
-        if ($this->startAt->format("Y-m-d") === $this->endAt->format("Y-m-d")) {
+        if ($this->startAt->format("c") === $this->endAt->format("c")) {
             $event->setNoTime(true);
         }
 
@@ -221,11 +221,16 @@ class EventEntity
 
     public function toArray(): array
     {
+        $format = 'Y-m-d H:i:s';
+        if ($this->startAt->format("c") === $this->endAt->format("c")) {
+            $format = 'Y-m-d';
+        }
+
         return [
             'title' => $this->getTitle(),
             'date' => $this->getDate(),
-            'startAt' => $this->getStartAt()->format("Y-m-d H:i:s"),
-            'endAt' => $this->getEndAt()->format("Y-m-d H:i:s"),
+            'startAt' => $this->startAt->format($format),
+            'endAt' => $this->endAt->format($format),
         ];
     }
 }
